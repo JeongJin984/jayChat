@@ -16,17 +16,60 @@ import io.netty.handler.codec.http.websocketx.extensions.compression.WebSocketCl
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
+import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.SSLException;
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URI;
 import java.net.URISyntaxException;
 
 public class Main {
+    static Logger log = LoggerFactory.getLogger("org.example.Main");
     static final String URL = System.getProperty("url", "ws://127.0.0.1:9090/ws");
 
-    public static void main(String[] args) throws URISyntaxException, SSLException {
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        while(true) {
+            String[] input = br.readLine().split(" ");
+            log.info("{}", input[0]);
+            try {
+                if(input[0].equalsIgnoreCase("/enter")) {
+                    Channel channel = connect(input[1]);
+
+                    if(channel == null) {
+                        System.err.println("something is wrong");
+                        break;
+                    }
+
+                    while(true) {
+                        String msg = br.readLine();
+
+                        if(msg.equalsIgnoreCase("/close")) {
+                            channel.close();
+                        } else if(msg == null) {
+                            break;
+                        } else if("ping".equalsIgnoreCase(msg)) {
+                            WebSocketFrame frame = new PingWebSocketFrame(Unpooled.wrappedBuffer(new byte[]{8, 1, 8, 1}));
+                            channel.writeAndFlush(frame);
+                        } else {
+                            WebSocketFrame frame = new TextWebSocketFrame(msg);
+                            channel.writeAndFlush(frame);
+                        }
+                    }
+                } else if(input[0].equalsIgnoreCase("/exit")) {
+                    break;
+                }
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
+    public static Channel connect(String roomId) throws SSLException, URISyntaxException {
         URI uri = new URI(URL);
         String schema = uri.getScheme() == null ? "ws" : uri.getScheme();
         final String host = uri.getHost() == null ? "127.0.0.1" : uri.getHost();
@@ -45,7 +88,7 @@ public class Main {
 
         if(!"ws".equalsIgnoreCase(schema)  && !"wss".equalsIgnoreCase(schema)) {
             System.err.println("Only WS(S) is supported");
-            return;
+            return null;
         }
 
         final boolean ssl = "wss".equalsIgnoreCase(schema);
@@ -86,24 +129,10 @@ public class Main {
 
             Channel channel = bootstrap.connect(uri.getHost(), port).sync().channel();
             handler.handShakerFuture().sync();
-
-            BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
-            while(true) {
-                String msg = br.readLine();
-                if(msg == null) {
-                    break;
-                } else if("ping".equalsIgnoreCase(msg)) {
-                    WebSocketFrame frame = new PingWebSocketFrame(Unpooled.wrappedBuffer(new byte[]{8, 1, 8, 1}));
-                    channel.writeAndFlush(frame);
-                } else {
-                    WebSocketFrame frame = new TextWebSocketFrame(msg);
-                    channel.writeAndFlush(frame);
-                }
-            }
-
-            group.shutdownGracefully();
+            return channel;
         } catch (Exception e) {
             e.printStackTrace();
         }
+        return null;
     }
 }

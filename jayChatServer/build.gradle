@@ -2,6 +2,10 @@ plugins {
     id 'java'
 }
 
+java {
+    sourceCompatibility = '17'
+}
+
 group = 'com.jaychat'
 version = '1.0-SNAPSHOT'
 
