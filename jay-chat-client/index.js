@@ -11,11 +11,28 @@ function createWindow () {
     }
   })
 
+  win.webContents.setWindowOpenHandler(({ url }) => {
+    if (url === 'about:blank') {
+      return {
+        action: 'allow',
+        overrideBrowserWindowOptions: {
+          frame: true,
+          fullscreenable: false,
+          backgroundColor: 'white',
+          webPreferences: {
+            preload: 'preload.js'
+          }
+        }
+      }
+    }
+    return { action: 'deny' }
+  })
+
   win.loadFile('./build/index.html')
 }
 
 app.whenReady().then(() => {
-  createWindow().set
+  createWindow()
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
