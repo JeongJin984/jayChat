@@ -3,32 +3,15 @@ const path = require('node:path')
 
 function createWindow () {
   const win = new BrowserWindow({
-    width: 800,
-    height: 600,
-    autoHideMenuBar: true,
+    width: 400,
+    height: 700,
+    autoHideMenuBar: false,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js')
     }
   })
 
-  win.webContents.setWindowOpenHandler(({ url }) => {
-    if (url === 'about:blank') {
-      return {
-        action: 'allow',
-        overrideBrowserWindowOptions: {
-          frame: true,
-          fullscreenable: false,
-          backgroundColor: 'white',
-          webPreferences: {
-            preload: 'preload.js'
-          }
-        }
-      }
-    }
-    return { action: 'deny' }
-  })
-
-  win.loadFile('./build/index.html')
+  win.loadFile('index.html')
 }
 
 app.whenReady().then(() => {
